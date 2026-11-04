@@ -1,0 +1,25 @@
+{% extends "players/base.html" %}
+{% block title %}{{ market.name }} valuations · CricValue{% endblock %}
+{% block body %}
+<p class="sub"><a href="{% url 'markets' %}">← All markets</a></p>
+<h2>{{ market.name }}</h2>
+<p class="sub">{{ market.get_cricket_format_display }} · Team purse ₹{{ market.team_purse }} Cr · {{ market.team_count }} teams · Squad size {{ market.squad_size }}{% if market.overseas_limit %} · Overseas limit {{ market.overseas_limit }}{% endif %}</p>
+<form method="get" class="filters">
+  <input name="q" value="{{ q }}" placeholder="Search player">
+  <select name="role"><option value="">All roles</option>{% for v,l in roles %}<option value="{{ v }}" {% if role == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+  <button>Apply</button>
+</form>
+<p class="sub">{{ rows|length }} calculated player valuations. Global base is independent of this market's purse and competition rules.</p>
+<div class="card"><div class="tw"><table>
+<tr><th>#</th><th>Player</th><th>Role</th><th class="num">Matches</th><th class="num">Quality</th><th class="num">Confidence</th><th class="num">Global base ₹Cr</th><th class="num">Market adjustment</th><th class="num">Market value ₹Cr</th></tr>
+{% for v in rows %}<tr>
+<td class="rk">{{ forloop.counter }}</td>
+<td><div class="pl"><span class="av">{{ v.player.name|slice:":1" }}</span><div><a href="{% url 'detail' v.player.pk %}">{{ v.player.name }}</a><small>{{ v.player.country }}</small></div></div></td>
+<td><span class="role role-{{ v.player.role }}">{{ v.player.get_role_display }}</span></td>
+<td class="num">{{ v.category_value.matches }}</td><td class="num">{{ v.category_value.quality_score|floatformat:0 }}/100</td><td class="num">{{ v.confidence_score|floatformat:0 }}%</td>
+<td class="num">₹{{ v.global_base_value }}</td><td class="num">×{{ v.market_adjustment|floatformat:2 }}</td>
+<td class="num"><span class="tot">₹{{ v.estimated_value }} Cr</span><div class="bar"><i style="width:{{ v.pct }}%"></i></div><small class="price-band">{{ v.price_band|title }}</small></td>
+</tr>{% empty %}<tr><td colspan="9" class="empty">No valuations yet. Run <code>python manage.py recalc_market_values</code> after recalculating global values.</td></tr>{% endfor %}
+</table></div></div>
+<p class="sub">Market values are estimates, not guaranteed winning bids. Actual prices also depend on team-specific remaining purse, squad gaps and live bidding.</p>
+{% endblock %}

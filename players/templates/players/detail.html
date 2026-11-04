@@ -1,0 +1,132 @@
+{% extends "players/base.html" %}
+{% block title %}{{ p.name }} · CricValue{% endblock %}
+{% block body %}
+<div class="pl" style="margin:8px 0 4px"><span class="av" style="width:48px;height:48px;font-size:20px">{{ p.name|slice:":1" }}</span>
+<div><h2 style="margin:0">{{ p.name }}</h2>
+<small style="color:var(--mut)">{% if p.country and p.country != "Unknown" %}{{ p.country }} · {% endif %}<span class="role role-{{ p.role }}">{{ p.get_role_display }}</span></small></div></div>
+
+<div class="stats">
+{% for ch in charts %}
+  <div class="stat"><h3>{{ ch.title }}</h3>
+    <div class="big">{{ ch.v.est.text }}</div>
+    <div class="brk"><span class="chip m-{{ ch.v.est.momentum_css }}">{{ ch.v.est.momentum }}</span> <span class="{{ ch.v.est.trend_dir }}">{{ ch.v.est.trend_text }}</span> · {{ ch.v.est.band }}</div>
+    <div class="brk">{{ ch.v.get_tier_display_name }} · <span class="chip pot-{{ ch.v.est.potential_label|lower }}">{{ ch.v.est.potential_label }} potential</span> · {{ ch.v.matches }} matches</div>
+    {% if ch.v.est.note %}<div class="brk note">{{ ch.v.est.note|capfirst }}</div>{% endif %}
+    <table class="fx"><tr><td>Quality rank in pool</td><td>{{ ch.v.est.factors.quality_index|floatformat:2 }}</td></tr>
+      <tr><td>Transfer to franchise level</td><td>{{ ch.v.est.factors.transfer|floatformat:2 }}</td></tr>
+      <tr><td>Demand (role, availability)</td><td>{{ ch.v.est.factors.demand|floatformat:2 }}</td></tr>
+      <tr><td>Stats-only value</td><td>₹{{ ch.v.est.factors.stats_value }} Cr</td></tr>
+      <tr><td>Form multiplier</td><td>×{{ ch.v.est.factors.form_factor }}</td></tr></table>
+    <svg class="chart" viewBox="0 0 320 90"><polyline points="{{ ch.poly }}"/><circle cx="{{ ch.lx }}" cy="{{ ch.ly }}" r="4"/></svg>
+    <div class="axis"><span>{{ ch.d1 }}</span><span class="{% if ch.change >= 0 %}up{% else %}dn{% endif %}">{% if ch.change >= 0 %}+{% endif %}{{ ch.change }} Cr model change over {{ ch.n }} matches</span><span>{{ ch.d2 }}</span></div>
+  </div>
+{% empty %}<p class="sub">Not enough matches yet to draw a value chart.</p>{% endfor %}
+</div>
+
+
+{% for it in intel %}
+<h2>{{ it.title }} · player intelligence</h2>
+<div class="intel">
+  <div class="stat">
+    <h3>Player DNA</h3>
+    <div class="big dna">{{ it.profile.dna.label }}</div>
+    <div class="brk">{{ it.profile.matches }} matches analysed · impact {{ it.profile.impact|floatformat:0 }}/100{% if it.profile.batting and it.profile.batting.pos %} · usually bats {{ it.profile.batting.pos }}{% endif %}</div>
+    {% if it.profile.form %}<div class="brk"><span class="chip f-{{ it.profile.form.label|slugify }}">{{ it.profile.form.label }}</span> <span class="chip rel-{{ it.profile.form.reliability|lower }}">{{ it.profile.form.reliability }}</span>
+      {% if it.profile.trend %}<span class="chip m-{{ it.profile.trend.css }}">{{ it.profile.trend.label }}</span>{% endif %}</div>{% endif %}
+    {% for tr in it.profile.traits %}
+    <div class="trait"><span>{{ tr.label }}</span><div class="tbar"><i style="width:{{ tr.score }}%"></i></div><b>{{ tr.score|floatformat:0 }}</b><small>{{ tr.hint }}</small></div>
+    {% endfor %}
+  </div>
+
+  <div class="stat">
+    <h3>Strengths</h3>
+    <ul class="ev up">{% for x in it.profile.strengths %}<li>{{ x }}</li>{% empty %}<li class="muted">Nothing stands out yet.</li>{% endfor %}</ul>
+    <h3 style="margin-top:12px">Weaknesses</h3>
+    <ul class="ev dn">{% for x in it.profile.weaknesses %}<li>{{ x }}</li>{% empty %}<li class="muted">No clear weakness in the data.</li>{% endfor %}</ul>
+  </div>
+
+  <div class="stat">
+    <h3>Value signal</h3>
+    {% if it.signal %}
+      <div class="big"><span class="chip v-{{ it.signal.css }}" style="font-size:18px">{{ it.signal.label }}</span></div>
+      <div class="brk">Performance-implied worth ≈ <b>₹{{ it.signal.worth }} Cr</b> vs modelled market <b>₹{{ it.signal.market }} Cr</b></div>
+      <ul class="ev">{% for x in it.signal.reasons %}<li>{{ x|capfirst }}</li>{% endfor %}</ul>
+      {% if it.found.tag_titles %}<div class="brk">{% for tt in it.found.tag_titles %}<span class="chip tag-chip">{{ tt }}</span> {% endfor %}</div>{% endif %}
+      {% if it.found.projection %}<div class="brk" style="margin-top:8px">Projected in about 12 months if the trajectory holds: <b class="up">{{ it.found.projection.text }}</b> ({{ it.found.projection.confidence }} confidence)</div>{% endif %}
+    {% else %}
+      <p class="sub">Not in this format's active pool (few matches or inactive), so no value signal.</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="intel">
+  {% with sp=it.profile.opposition %}
+  <div class="stat">
+    <h3>Against strong and weak opposition</h3>
+    <table class="fx">
+      <tr><td>Strong opposition ({{ sp.strong.n }} matches)</td><td>{% if sp.strong.impact != None %}{{ sp.strong.impact|floatformat:0 }}{% else %}n/a{% endif %}</td></tr>
+      <tr><td>Mid-strength ({{ sp.mid.n }})</td><td>{% if sp.mid.impact != None %}{{ sp.mid.impact|floatformat:0 }}{% else %}n/a{% endif %}</td></tr>
+      <tr><td>Weak opposition ({{ sp.weak.n }})</td><td>{% if sp.weak.impact != None %}{{ sp.weak.impact|floatformat:0 }}{% else %}n/a{% endif %}</td></tr>
+      <tr><td>Overall impact</td><td>{{ sp.overall|floatformat:0 }}</td></tr></table>
+    <div class="brk note">Impact is already adjusted for opposition quality. n/a = fewer than 4 matches in that group.{% if sp.inflated %} <b class="dn">Record is flattered by weaker sides.</b>{% endif %}</div>
+  </div>
+  {% endwith %}
+
+  <div class="stat">
+    <h3>Form vs long-term</h3>
+    {% if it.profile.form %}
+    <table class="fx">
+      <tr><td>Recent impact (last 8)</td><td>{{ it.profile.form.recent|floatformat:0 }}</td></tr>
+      <tr><td>Long-term impact</td><td>{{ it.profile.form.long_term|floatformat:0 }}</td></tr>
+      <tr><td>Consistency</td><td>{{ it.profile.form.consistency|floatformat:0 }}/100 · {{ it.profile.form.reliability }}</td></tr>
+      {% if it.profile.trend %}<tr><td>Last 10 vs previous 30</td><td class="{{ it.profile.trend.css }}">{% if it.profile.trend.change >= 0 %}+{% endif %}{% widthratio it.profile.trend.change 1 100 %}%</td></tr>{% endif %}
+    </table>
+    {% else %}<p class="sub">Needs at least 8 matches.</p>{% endif %}
+    {% if it.profile.progression.years %}
+    <h3 style="margin-top:12px">Career progression{% if it.profile.progression.arc %} · {{ it.profile.progression.arc }}{% endif %}</h3>
+    <table class="fx">{% for y in it.profile.progression.years %}<tr><td>{{ y.year }} <small class="muted">({{ y.matches }} m)</small></td><td><div class="tbar"><i style="width:{{ y.impact }}%"></i></div></td><td class="num">{{ y.impact|floatformat:0 }}</td></tr>{% endfor %}</table>
+    {% endif %}
+  </div>
+
+  <div class="stat">
+    <h3>Phase analysis</h3>
+    {% if it.profile.phases %}
+    {% with ph=it.profile.phases %}
+    {% if ph.bat %}<table class="fx"><tr><th>Batting</th><th class="num">Balls</th><th class="num">SR</th><th class="num">Avg</th></tr>
+      {% for k, row in ph.bat.items %}<tr><td>{{ k|upper }}</td><td class="num">{{ row.balls }}</td><td class="num {% if row.ratio >= 1.05 %}up{% elif row.ratio < 0.95 %}dn{% endif %}">{{ row.sr|floatformat:0 }}</td><td class="num">{% if row.avg != None %}{{ row.avg|floatformat:0 }}{% else %}–{% endif %}</td></tr>{% endfor %}</table>{% endif %}
+    {% if ph.bowl %}<table class="fx" style="margin-top:8px"><tr><th>Bowling</th><th class="num">Overs</th><th class="num">Econ</th><th class="num">Wkts</th></tr>
+      {% for k, row in ph.bowl.items %}<tr><td>{{ k|upper }}</td><td class="num">{{ row.overs }}</td><td class="num {% if row.ratio >= 1.05 %}up{% elif row.ratio < 0.95 %}dn{% endif %}">{{ row.eco }}</td><td class="num">{{ row.wickets }}</td></tr>{% endfor %}</table>{% endif %}
+    <div class="brk note">PP = powerplay, MID = middle overs, DEATH = death overs. From {{ ph.matches }} matches ({% widthratio ph.coverage 1 100 %}% of those analysed). Green/red = above/below the league norm for that phase.</div>
+    {% endwith %}
+    {% else %}
+    <p class="sub">No phase data for this format yet. Tests have no phases; older imports need <code>import_cricsheet &lt;folder&gt; --backfill-phases</code>.</p>
+    {% endif %}
+  </div>
+</div>
+
+{% if it.similar %}
+<div class="card" style="margin:12px 0 4px"><div class="tw"><table>
+<tr><th>Similar players ({{ it.title }})</th><th class="num">Match</th><th>Closest on</th></tr>
+{% for s in it.similar %}<tr><td><a href="{% url 'detail' s.id %}">{{ s.name }}</a></td><td class="num">{{ s.similarity }}%</td><td>{{ s.shared|join:", " }}</td></tr>{% endfor %}
+</table></div></div>
+{% endif %}
+{% endfor %}
+
+<p class="sub">Player class measures proven, format-specific quality. Price band is independent, so a VIP can have a Balanced price and an emerging player can earn a higher price through form. Confidence measures how much match evidence supports the estimate.</p>
+<h2>Valuation explanation</h2>
+<div class="card"><div class="tw"><table>
+<tr><th>Format</th><th>Player class</th><th>Career quality</th><th>Potential</th><th>Consistency</th><th>Confidence</th><th>Recent form</th><th>Price band</th><th>Auction range</th></tr>
+{% for v in vals %}<tr><td>{{ v.get_category_display }}{% if v.group %} · {{ v.group_title }}{% endif %}</td><td>{{ v.get_tier_display_name }}</td><td>{{ v.quality_score|floatformat:1 }}/100</td><td>{{ v.potential_score|floatformat:1 }}/100</td><td>{{ v.consistency_score|floatformat:1 }}/100</td><td>{{ v.confidence_score|floatformat:1 }}%</td><td>{% if v.form_score >= 0 %}+{% endif %}{{ v.form_score|floatformat:1 }}%</td><td>{{ v.price_band|title }}</td><td class="tot">{% if v.est %}{{ v.est.text }}{% else %}₹{{ v.total }} Cr{% endif %}</td></tr>{% endfor %}
+</table></div></div>
+<h2>All values</h2>
+<div class="card"><div class="tw"><table>
+<tr><th>Tab</th><th class="num">Matches</th><th>Class</th><th>Price band</th><th class="num">Quality</th><th class="num">Confidence</th><th class="num">Form %</th><th class="num">Model value ₹Cr</th></tr>
+{% for v in vals %}<tr><td>{{ v.get_category_display }}{% if v.group %} · {{ v.group_title }}{% endif %}</td><td class="num">{{ v.matches }}</td><td>{{ v.tier|title }}</td><td>{{ v.price_band|title }}</td><td class="num">{{ v.quality_score|floatformat:0 }}/100</td><td class="num">{{ v.confidence_score|floatformat:0 }}%</td>
+<td class="num {% if v.form_score >= 0 %}up{% else %}dn{% endif %}">{{ v.form_score|floatformat:1 }}%</td><td class="num tot">₹{{ v.total }} Cr</td></tr>{% endfor %}
+</table></div></div>
+
+<h2>Recent matches</h2>
+<div class="card"><div class="tw"><table><tr><th>Date</th><th>Competition</th><th class="num">Runs (balls)</th><th class="num">Wkts</th><th class="num">Overs</th></tr>
+{% for f in perfs %}<tr><td>{{ f.match.date }}</td><td>{{ f.match.competition }}</td>
+<td class="num">{{ f.runs }} ({{ f.balls }})</td><td class="num">{{ f.wickets }}/{{ f.runs_conceded }}</td><td class="num">{{ f.overs }}</td></tr>{% endfor %}</table></div></div>
+{% endblock %}

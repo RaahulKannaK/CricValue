@@ -1,0 +1,81 @@
+{% extends "players/base.html" %}
+{% block body %}
+<div class="pagehead">
+  <div><h1>{{ t.title }}{% if grp %} · {{ grp_title }}{% endif %}</h1>
+  <p class="sub">{{ t.sub }}. Each price is a realistic <b>auction range</b> with a form trend, not a single number.</p></div>
+</div>
+
+<div class="kpis">
+  <div class="kpi"><span>Players</span><b>{{ summary.n }}</b></div>
+  <div class="kpi"><span>Premium targets (₹14 Cr+)</span><b>{{ summary.elite }}</b></div>
+  <div class="kpi up"><span>Undervalued</span><b>{{ summary.undervalued }}</b></div>
+  <div class="kpi up"><span>Form rising</span><b>{{ summary.rising }}</b></div>
+  <div class="kpi dn"><span>Form cooling</span><b>{{ summary.falling }}</b></div>
+  <div class="kpi"><span>Scouted</span><b>{{ summary.scouted }}</b></div>
+</div>
+
+{% if chips %}
+<div class="chips">
+  <a href="?" class="{% if not grp %}on{% endif %}">All</a>
+  {% for c in chips %}<a href="?grp={{ c.slug }}" class="{% if c.slug == grp %}on{% endif %}">{{ c.title }} <small>{{ c.n }}</small></a>{% endfor %}
+</div>
+{% endif %}
+
+<form method="get" class="filters">
+  <input type="hidden" name="grp" value="{{ grp }}">
+  <input name="q" value="{{ q }}" placeholder="Search player">
+  <select name="country"><option value="">All countries</option>
+    {% for c in countries %}<option {% if c == country %}selected{% endif %}>{{ c }}</option>{% endfor %}</select>
+  <select name="role"><option value="">All roles</option>
+    {% for v, l in roles %}<option value="{{ v }}" {% if v == role %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+  <select name="tier"><option value="">All classes</option>
+    {% for v, l in tier_choices %}<option value="{{ v }}" {% if v == tier %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+  <select name="sort">
+    <option value="total" {% if sort == "total" %}selected{% endif %}>Highest value</option>
+    <option value="form" {% if sort == "form" %}selected{% endif %}>Best form</option>
+    <option value="value" {% if sort == "value" %}selected{% endif %}>Most undervalued</option>
+  </select>
+  <label><input type="checkbox" name="inactive" value="1" {% if inactive %}checked{% endif %}> include inactive &amp; few matches</label>
+  <button>Apply</button>
+</form>
+
+{% if rows|length >= 3 %}
+<div class="podium">
+{% for c in rows|slice:":3" %}
+  <a class="pod pod-{{ forloop.counter }}" href="{% url 'detail' c.player.pk %}">
+    <span class="rk">#{{ forloop.counter }} · {{ c.est.band }}</span>
+    <span class="nm">{{ c.player.name }}</span>
+    <div class="val">{{ c.range_text }}</div>
+    <div class="rbar"><i style="left:{{ c.lo_pct }}%;width:{{ c.w_pct }}%"></i><u style="left:{{ c.mid_pct }}%"></u></div>
+    <div class="brk"><span class="chip m-{{ c.est.momentum_css }}">{{ c.est.momentum }}</span>
+      <span class="{{ c.trend_dir }}">{{ c.trend_text }}</span></div>
+  </a>
+{% endfor %}
+</div>
+{% endif %}
+
+<p class="sub">{{ rows|length }} players{% if not inactive and ref %} · active up to {{ ref }}{% endif %} · bars run from ₹0 to ₹{{ axis|floatformat:0 }} Cr, the dot is the most likely price</p>
+<div class="card"><div class="tw"><table class="vt">
+<thead><tr><th>#</th><th>Player</th><th>Class</th><th>Potential</th><th class="num">Quality</th><th>Form</th><th class="rcol">Auction range ₹ Cr</th><th>Value signal</th><th>Form trend</th></tr></thead>
+<tbody>
+{% for c in rows %}
+<tr><td class="rk">{{ forloop.counter }}</td>
+<td><div class="pl"><span class="av">{{ c.player.name|slice:":1" }}</span>
+  <div><a href="{% url 'detail' c.player.pk %}">{{ c.player.name }}</a>
+  <small>{% if c.player.country and c.player.country != "Unknown" %}{{ c.player.country }}{% else %}country unknown{% endif %} · <span class="role role-{{ c.player.role }}">{{ c.player.get_role_display }}</span></small></div></div></td>
+<td><span class="tier tier-{{ c.tier }}">{{ c.tier_title }}</span>{% if not c.active %} <small class="muted">inactive</small>{% endif %}
+  <small class="price-band">{{ c.est.band }}</small></td>
+<td><span class="chip pot-{{ c.est.potential_label|lower }}">{{ c.est.potential_label }}</span></td>
+<td class="num">{{ c.quality_score|floatformat:0 }}<small class="muted">/100</small>
+  <small class="price-band" title="Share of the evidence behind this estimate">{{ c.confidence_score|floatformat:0 }}% evidence · {{ c.matches }} m</small></td>
+<td><span class="chip m-{{ c.est.momentum_css }}">{{ c.est.momentum }}</span>
+  <small class="price-band {% if c.form_score >= 0 %}up{% else %}dn{% endif %}">{% if c.form_score >= 0 %}+{% endif %}{{ c.form_score|floatformat:1 }}%</small></td>
+<td class="rcol"><div class="rtxt tot" {% if c.est.note %}title="{{ c.est.note }}"{% endif %}>{{ c.range_text }}</div>
+  <div class="rbar"><i style="left:{{ c.lo_pct }}%;width:{{ c.w_pct }}%"></i><u style="left:{{ c.mid_pct }}%"></u></div>
+  {% if c.est.note %}<small class="price-band" title="{{ c.est.note }}">{{ c.est.note|truncatechars:48 }}</small>{% endif %}</td>
+<td><span class="chip v-{{ c.signal.css }}" title="{% for r in c.signal.reasons %}{{ r|capfirst }}. {% endfor %}Performance-implied worth ₹{{ c.signal.worth }} Cr vs modelled market ₹{{ c.signal.market }} Cr.">{{ c.signal.label }}</span>
+  {% if c.signal.label != "Fairly valued" %}<small class="price-band {{ c.signal.css }}">worth ≈ ₹{{ c.signal.worth }} Cr</small>{% endif %}</td>
+<td class="trend {{ c.trend_dir }}">{{ c.trend_text }}</td></tr>
+{% empty %}<tr><td colspan="9" class="empty">No players here yet. Import matches for this tab, or tick "include inactive &amp; few matches".</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endblock %}

@@ -1,0 +1,93 @@
+{% extends "players/base.html" %}
+{% block title %}Trade calculator · CricValue{% endblock %}
+{% block body %}
+<h2>Trade calculator <small class="sub">{{ cat_title }}</small></h2>
+<p class="sub">Add players to each side and see whether the trade is balanced. It adds up model estimates and ignores team needs, salary rules and age, so treat it as a guide.</p>
+<div class="chips">{% for t in all_tabs %}<a href="?cat={{ t.key }}" class="{% if t.key == cat %}on{% endif %}">{{ t.title }}</a>{% endfor %}</div>
+<div class="trade">
+  <section class="side" data-side="a"><h3>Side A sends</h3>
+    <div class="picker"><input type="search" placeholder="Search player…" autocomplete="off"><div class="results"></div></div>
+    <ul class="picked"></ul><div class="sum"></div></section>
+  <section class="side" data-side="b"><h3>Side B sends</h3>
+    <div class="picker"><input type="search" placeholder="Search player…" autocomplete="off"><div class="results"></div></div>
+    <ul class="picked"></ul><div class="sum"></div></section>
+</div>
+<div class="cash"><label>Cash added by side
+  <select id="cash-side"><option value="a">A</option><option value="b">B</option></select>
+  (₹ Cr) <input id="cash" type="number" min="0" step="0.5" value="0"></label></div>
+<div id="verdict" class="card verdict"></div>
+{{ init|json_script:"init" }}
+<script>
+(function () {
+  var CAT = "{{ cat }}", API = "{% url 'api_search' %}", timer = null;
+  var state = JSON.parse(document.getElementById("init").textContent);
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
+  function fmt(x) { return x.toFixed(1); }
+  function sum(list, k) { return list.reduce(function (s, p) { return s + p[k]; }, 0); }
+  function sideEl(s) { return document.querySelector('[data-side="' + s + '"]'); }
+  function ids(s) { return state[s].map(function (p) { return p.id; }).join(","); }
+
+  function verdict() {
+    var box = document.getElementById("verdict"); box.textContent = "";
+    if (!state.a.length || !state.b.length) { box.appendChild(el("p", "", "Add at least one player to each side.")); return; }
+    var cs = document.getElementById("cash-side").value, cash = parseFloat(document.getElementById("cash").value) || 0;
+    var ca = cs === "a" ? cash : 0, cb = cs === "b" ? cash : 0;
+    var a = sum(state.a, "total") + ca, b = sum(state.b, "total") + cb;
+    var aLo = sum(state.a, "low") + ca, aHi = sum(state.a, "high") + ca, bLo = sum(state.b, "low") + cb, bHi = sum(state.b, "high") + cb;
+    var diff = a - b, big = Math.max(a, b), head, tail = "";
+    if (Math.abs(diff) <= 0.05 * big) head = "Balanced: both sides are within 5% of each other.";
+    else if (aLo <= bHi && bLo <= aHi) head = "Close: the estimate ranges overlap. " + (diff > 0 ? "Side B" : "Side A") + " receives about ₹" + fmt(Math.abs(diff)) + " Cr more.";
+    else head = (diff > 0 ? "Side B" : "Side A") + " gets the better deal by about ₹" + fmt(Math.abs(diff)) + " Cr.";
+    if (Math.abs(diff) > 0.05 * big) tail = "To balance, " + (diff > 0 ? "Side B" : "Side A") + " could add about ₹" + fmt(Math.abs(diff)) + " Cr.";
+    box.appendChild(el("p", "verdict-head", head));
+    box.appendChild(el("p", "", "Side A sends ₹" + fmt(a) + " Cr (range " + fmt(aLo) + "–" + fmt(aHi) + "). Side B sends ₹" + fmt(b) + " Cr (range " + fmt(bLo) + "–" + fmt(bHi) + ")."));
+    if (tail) box.appendChild(el("p", "sub", tail));
+  }
+
+  function render() {
+    ["a", "b"].forEach(function (s) {
+      var ul = sideEl(s).querySelector(".picked"); ul.textContent = "";
+      state[s].forEach(function (p, i) {
+        var li = el("li"); li.appendChild(el("span", "nm", p.name)); li.appendChild(el("span", "val", "₹" + fmt(p.total) + " Cr"));
+        var x = el("button", "x", "×"); x.type = "button"; x.setAttribute("aria-label", "Remove " + p.name);
+        x.onclick = function () { state[s].splice(i, 1); render(); };
+        li.appendChild(x); ul.appendChild(li);
+      });
+      sideEl(s).querySelector(".sum").textContent = state[s].length
+        ? "Total ₹" + fmt(sum(state[s], "total")) + " Cr (range " + fmt(sum(state[s], "low")) + "–" + fmt(sum(state[s], "high")) + ")" : "No players yet";
+    });
+    verdict();
+    try { history.replaceState(null, "", "?cat=" + CAT + "&a=" + ids("a") + "&b=" + ids("b")); } catch (e) {}
+  }
+
+  document.querySelectorAll(".side").forEach(function (box) {
+    var s = box.getAttribute("data-side"), input = box.querySelector("input"), res = box.querySelector(".results");
+    input.addEventListener("input", function () {
+      clearTimeout(timer);
+      var q = input.value.trim();
+      if (q.length < 2) { res.textContent = ""; return; }
+      timer = setTimeout(function () {
+        fetch(API + "?cat=" + CAT + "&q=" + encodeURIComponent(q)).then(function (r) { return r.json(); }).then(function (d) {
+          res.textContent = "";
+          d.results.forEach(function (p) {
+            var b = el("button", "hit"); b.type = "button";
+            b.appendChild(el("span", "nm", p.name)); b.appendChild(el("small", "", (p.country ? p.country + " · " : "") + p.role));
+            b.appendChild(el("span", "val", "₹" + fmt(p.total) + " Cr"));
+            b.onclick = function () {
+              var taken = state.a.concat(state.b).some(function (x) { return x.id === p.id; });
+              if (!taken && state[s].length < 12) state[s].push(p);
+              input.value = ""; res.textContent = ""; render();
+            };
+            res.appendChild(b);
+          });
+          if (!d.results.length) res.appendChild(el("div", "none", "No players found in this format"));
+        });
+      }, 250);
+    });
+  });
+  document.getElementById("cash").addEventListener("input", verdict);
+  document.getElementById("cash-side").addEventListener("change", verdict);
+  render();
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,12 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}CricValue · Cricket player trade values{% endblock %}</title>
+<link rel="stylesheet" href="{% static 'players/site.css' %}"></head>
+<body>
+<header class="top"><div class="w"><a class="brand" href="/">🏏 CricValue</a><span class="tag">What a player is really worth: auction ranges in ₹ crore, player DNA and hidden gems</span></div></header>
+<div class="w">
+<nav class="tabs">{% for x in tabs %}<a href="{% url 'tab' x.slug %}" class="{% if x.slug == current %}on{% endif %}">{{ x.title }}</a>{% endfor %}<a href="{% url 'discover' %}" class="{% if current == 'discover' %}on{% endif %}">Discover</a><a href="{% url 'markets' %}" class="{% if current == 'markets' %}on{% endif %}">Auction Markets</a></nav>
+{% block body %}{% endblock %}
+<footer>Match data: <a href="https://cricsheet.org">Cricsheet</a> (ODC-By licence). Ranges are model estimates for planning, not official auction prices; actual bids depend on team needs and competition.</footer>
+</div></body></html>

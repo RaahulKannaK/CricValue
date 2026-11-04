@@ -1,0 +1,46 @@
+{% extends "players/base.html" %}
+{% block title %}Discover · CricValue{% endblock %}
+{% block body %}
+<div class="pagehead">
+  <div><h1>Discover</h1>
+  <p class="sub">Players worth knowing before the market does: breakout candidates, undervalued players, low-cost high-impact signings and rising talent. Pick a format.</p></div>
+</div>
+
+<div class="chips">
+  {% for c in choices %}<a href="?cat={{ c.slug }}" class="{% if c.slug == slug %}on{% endif %}">{{ c.title }}</a>{% endfor %}
+</div>
+
+<div class="kpis">
+  <div class="kpi"><span>{{ t.title }} players analysed</span><b>{{ pool }}</b></div>
+  <div class="kpi up"><span>With at least one discovery tag</span><b>{{ flagged }}</b></div>
+</div>
+
+<p class="sub note-box"><b>How to read this.</b> <i>Market price</i> is the modelled auction range. <i>Worth</i> is what performance, form, consistency and potential say with no market effects, pulled towards the market price when evidence is thin. Tags are leads to investigate, not verdicts. Age tags only use a recorded date of birth; without one a player is shown as early-career instead. Future values are model projections that assume the current trajectory holds.</p>
+
+{% for id, title, blurb, rows in sections %}
+<h2 id="{{ id }}">{{ title }}</h2>
+<p class="sub">{{ blurb }}</p>
+{% if rows %}
+<div class="card"><div class="tw"><table class="vt">
+<thead><tr><th>#</th><th>Player</th><th>Tags</th><th class="rcol">Market range ₹ Cr</th><th>Worth</th><th>Breakout</th><th>12-month projection</th></tr></thead>
+<tbody>
+{% for r in rows %}
+<tr><td class="rk">{{ forloop.counter }}</td>
+<td><div class="pl"><span class="av">{{ r.name|slice:":1" }}</span>
+  <div><a href="{% url 'detail' r.id %}">{{ r.name }}</a>
+  <small>{% if r.country and r.country != "Unknown" %}{{ r.country }}{% else %}country unknown{% endif %}{% if r.age %} · age {{ r.age }}{% endif %} · {{ r.matches }} matches</small></div></div></td>
+<td>{% for tt in r.tag_titles %}<span class="chip tag-chip">{{ tt }}</span> {% empty %}<small class="muted">none</small>{% endfor %}</td>
+<td class="rcol"><div class="rtxt tot">{{ r.est.text }}</div><small class="price-band">{{ r.est.band }}</small></td>
+<td><span class="chip v-{{ r.signal.css }}">{{ r.signal.label }}</span>
+  {% if r.signal.label != "Fairly valued" %}<small class="price-band {{ r.signal.css }}">≈ ₹{{ r.signal.worth }} Cr</small>{% endif %}
+  {% if r.signal.reasons %}<small class="price-band" title="{% for x in r.signal.reasons %}{{ x|capfirst }}. {% endfor %}">{{ r.signal.reasons.0|capfirst|truncatechars:44 }}</small>{% endif %}</td>
+<td><div class="bscore"><i style="width:{{ r.breakout.score }}%"></i></div>
+  <small class="price-band" title="Potential {{ r.breakout.parts.potential }} · trajectory {{ r.breakout.parts.trajectory }} · performance {{ r.breakout.parts.performance }} · big-match {{ r.breakout.parts.big_match }} · low price {{ r.breakout.parts.low_price }} · early career {{ r.breakout.parts.early_career }}">{{ r.breakout.label }} · {{ r.breakout.score|floatformat:0 }}/100</small></td>
+<td>{% if r.projection %}<div class="rtxt tot up">{{ r.projection.text }}</div><small class="price-band">+{{ r.projection.growth_pct }}% · {{ r.projection.confidence }} confidence</small>{% else %}<small class="muted">no clear upside signal</small>{% endif %}</td></tr>
+{% endfor %}
+</tbody></table></div></div>
+{% else %}
+<div class="card"><div class="empty">Nobody in {{ t.title }} meets this test yet.</div></div>
+{% endif %}
+{% endfor %}
+{% endblock %}
