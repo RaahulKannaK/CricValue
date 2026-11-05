@@ -1,0 +1,62 @@
+name: Cricsheet sync
+
+on:
+  schedule:
+    - cron: "30 3 * * *"   # every day, 03:30 UTC (9:00 AM IST)
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "recent = last 7 days, all = full archive (first run)"
+        type: choice
+        default: recent
+        options:
+          - recent
+          - all
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    env:
+      MODE: ${{ github.event.inputs.mode || 'recent' }}
+      B2_KEY_ID: ${{ secrets.B2_KEY_ID }}
+      B2_APP_KEY: ${{ secrets.B2_APP_KEY }}
+      B2_BUCKET: ${{ secrets.B2_BUCKET }}
+      B2_ENDPOINT: ${{ secrets.B2_ENDPOINT }}
+      B2_REGION: ${{ secrets.B2_REGION }}
+      SECRET_KEY: ${{ secrets.SECRET_KEY }}
+      DEBUG: "False"
+      DB_NAME: ${{ secrets.DB_NAME }}
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DB_HOST: ${{ secrets.DB_HOST }}
+      DB_PORT: ${{ secrets.DB_PORT }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Only needed if requirements.txt uses mysqlclient; remove if you use PyMySQL.
+      - name: System packages for mysqlclient
+        run: sudo apt-get update && sudo apt-get install -y libmysqlclient-dev pkg-config
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt boto3 requests
+
+      # 1. Cricsheet -> Backblaze B2
+      - name: Sync Cricsheet data to B2
+        run: python scripts/sync_cricsheet.py "$MODE"
+
+      # 2. Backblaze B2 -> Aiven MySQL
+      - name: Apply migrations
+        run: python manage.py migrate --noinput
+
+      - name: Import new matches from B2
+        run: |
+          if [ "$MODE" = "all" ]; then
+            python manage.py import_from_b2 --zip raw/cricsheet/all_json.zip
+          else
+            python manage.py import_from_b2
+          fi
