@@ -1,4 +1,4 @@
-name: Cricsheet sync
+﻿name: Cricsheet sync
 
 on:
   schedule:
@@ -31,6 +31,8 @@ jobs:
       DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
       DB_HOST: ${{ secrets.DB_HOST }}
       DB_PORT: ${{ secrets.DB_PORT }}
+      DB_SSL: "true"
+      DB_SSL_CA: ${{ secrets.DB_SSL_CA }}
     steps:
       - uses: actions/checkout@v4
 
@@ -38,12 +40,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      # Only needed if requirements.txt uses mysqlclient; remove if you use PyMySQL.
-      - name: System packages for mysqlclient
-        run: sudo apt-get update && sudo apt-get install -y libmysqlclient-dev pkg-config
-
       - name: Install dependencies
-        run: pip install -r requirements.txt boto3 requests
+        run: pip install -r requirements.txt
 
       # 1. Cricsheet -> Backblaze B2
       - name: Sync Cricsheet data to B2
