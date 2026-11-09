@@ -1,0 +1,36 @@
+﻿name: Recalculate values
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: cricsheet-sync
+  cancel-in-progress: false
+
+jobs:
+  recalc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    env:
+      SECRET_KEY: ${{ secrets.SECRET_KEY }}
+      DEBUG: "False"
+      DB_NAME: ${{ secrets.DB_NAME }}
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DB_HOST: ${{ secrets.DB_HOST }}
+      DB_PORT: ${{ secrets.DB_PORT }}
+      DB_SSL: "true"
+      DB_SSL_CA: ${{ secrets.DB_SSL_CA }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Apply migrations
+        run: python manage.py migrate --noinput
+      - name: Recalculate values
+        run: python manage.py recalc_values --base
+      - name: Recalculate auction market values
+        run: python manage.py recalc_market_values

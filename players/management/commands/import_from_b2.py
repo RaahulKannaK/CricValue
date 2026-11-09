@@ -11,6 +11,7 @@ Status is written to metadata/import_status.json in the bucket.
 import datetime as dt
 import io
 import json
+import time
 import zipfile
 from pathlib import PurePosixPath
 
@@ -36,6 +37,8 @@ class Command(BaseCommand):
         parser.add_argument("--all", action="store_true", help="ignore the last-import time")
         parser.add_argument("--women", action="store_true")
         parser.add_argument("--no-recalc", action="store_true")
+        parser.add_argument("--max-minutes", type=int, default=0,
+                            help="stop cleanly after this many minutes (run again to continue)")
 
     def handle(self, *a, **o):
         if not b2.configured():
@@ -46,8 +49,13 @@ class Command(BaseCommand):
         importer = MatchImporter(women=o["women"])
         new = skipped = failed = 0
         first_error = ""
+        started = time.monotonic()
+        stopped_early = False
 
         for ext, load in self.items(o, status):
+            if o["max_minutes"] and time.monotonic() - started > o["max_minutes"] * 60:
+                stopped_early = True
+                break
             if ext in known:
                 skipped += 1
                 continue
@@ -68,7 +76,11 @@ class Command(BaseCommand):
                 skipped += 1        # e.g. women's matches when --women is not set
 
         self.stdout.write(f"Imported {new} new matches, skipped {skipped}, failed {failed}")
-        if new and not o["no_recalc"]:
+        if stopped_early:
+            self.stdout.write(self.style.WARNING(
+                "Time limit reached before every file was checked. NOT finished: "
+                "run the workflow again (mode all) to continue."))
+        elif new and not o["no_recalc"]:
             call_command("recalc_values", "--base")
 
         latest = Match.objects.aggregate(m=Max("date"))["m"]
@@ -78,7 +90,7 @@ class Command(BaseCommand):
             "error": first_error,
             "new_matches": new,
             "latest_match": latest.isoformat() if latest else "",
-            "last_success_at": now.isoformat(timespec="seconds") if failed == 0
+            "last_success_at": now.isoformat(timespec="seconds") if failed == 0 and not stopped_early
                                else status.get("last_success_at", ""),
         }
         try:
@@ -87,7 +99,8 @@ class Command(BaseCommand):
             self.stderr.write(f"Could not write {STATUS_KEY}: {e}")
         if failed:
             raise CommandError(f"{failed} matches failed. First error: {first_error}")
-        self.stdout.write(self.style.SUCCESS(f"Done. Data up to {latest}."))
+        if not stopped_early:
+            self.stdout.write(self.style.SUCCESS(f"Done. Data up to {latest}."))
 
     def items(self, o, status):
         """Yield (match id, function that returns the JSON bytes)."""
@@ -100,9 +113,14 @@ class Command(BaseCommand):
             return
 
         cutoff = None
-        if not o["all"] and status.get("last_success_at"):
-            cutoff = (dt.datetime.fromisoformat(status["last_success_at"])
-                      - dt.timedelta(days=o["overlap_days"]))
+        if not o["all"]:
+            if status.get("last_success_at"):
+                cutoff = (dt.datetime.fromisoformat(status["last_success_at"])
+                          - dt.timedelta(days=o["overlap_days"]))
+            else:
+                # No finished full import on record: look only at files uploaded in the last
+                # 7 days instead of all 23,000 (use --zip or --all for a full load).
+                cutoff = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=7)
         for obj in b2.list_objects(o["prefix"]):
             key = obj["Key"]
             if not key.endswith(".json"):
