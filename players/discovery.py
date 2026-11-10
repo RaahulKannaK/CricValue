@@ -145,6 +145,8 @@ def projection(c, brk):
     future = min(23.0, mid * (1.0 + growth), mid + 8.0)
     width = 0.15 + 0.25 * (1.0 - conf)
     lo = max(0.5, _round_half(future * (1.0 - width)))
+    hi = max(lo, min(23.0, _round_half(future * (1.0 + width))))
+
     return {"low": lo, "high": hi, "mid": round(future, 1), "growth_pct": round(growth * 100),
             "text": f"₹{lo:g}–{hi:g} Cr",
             "confidence": "low" if conf < 0.4 else "medium" if conf < 0.7 else "good"}

@@ -247,10 +247,16 @@ def estimate(name, role, country, quality, form_pct, confidence, consistency,
     up_skew = 0.07 if (pi >= 0.75 and matches < 60) else 0.0
     low = max(0.5, mid * (1.0 - width))
     high = min(23.0, mid * (1.0 + width + up_skew))
-    lo_r, hi_r = _round_half(low), _round_half(high)
-    lo_r = max(0.5, lo_r)
+    lo_r = max(0.5, _round_half(low))
+    hi_r = min(ceiling, _round_half(high))
+
+    # Maintain a minimum range width without exceeding the
+    # competition-level ceiling.
     if hi_r - lo_r < 1.0:
-        hi_r = lo_r + 1.0
+        hi_r = min(ceiling, lo_r + 1.0)
+
+    if hi_r - lo_r < 1.0:
+        lo_r = max(0.5, hi_r - 1.0)
 
     # trend = what form adds or removes
     delta = mid - neutral
