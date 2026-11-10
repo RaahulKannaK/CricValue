@@ -36,14 +36,18 @@ from .strength import nation_scale
 # --------------------------------------------------------------------------
 
 MARKET = {
-    "domestic_country": "india",   # no overseas-slot limit -> more franchises can bid
-    "domestic_demand": 0.10,       # added to the demand index for domestic players
+    "domestic_country": "india",
+    "domestic_demand": 0.10,
     "role_demand": {"AR": 0.90, "WK": 0.80, "BOWL": 0.65, "BAT": 0.50},
-    "unknown_country_scale": 0.75, # country not recorded: assume a typical level
-    "marquee_matches": 120,        # long record at the top level ...
-    "marquee_min_scale": 0.80,     # ... for an elite/strong nation ...
-    "marquee_min_quality": 0.55,   # ... and still in the better half of the pool
+    "unknown_country_scale": 0.75,
+    "marquee_matches": 120,
+    "marquee_min_scale": 0.80,
+    "marquee_min_quality": 0.55,
     "marquee_max_lift": 0.22,
+
+    # Maximum value supported by match statistics alone.
+    # Scouting/potential can still contribute separately.
+    "stats_only_cap": 19.0,
 }
 
 # Competition level (0-1: nation strength blended with opposition actually faced)
