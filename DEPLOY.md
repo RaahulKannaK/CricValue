@@ -61,7 +61,6 @@ Then set DJANGO_HTTPS=1 in /etc/cricvalue.env and run: sudo systemctl restart cr
 - Keep the Cricsheet credit and the "estimates, not official prices" notice. Do not present it as betting or fantasy advice.
 - The admin (/admin/) is public: use a strong password.
 - Check the daily log after the first few nights: /var/log/cricvalue/daily_update.log
-<<<<<<< HEAD
 
 ## Render web service start command
 
@@ -72,5 +71,3 @@ gunicorn cricvalue.wsgi:application --workers 2 --threads 2 --timeout 90 --acces
 ```
 
 The longer timeout is only a safety margin. Player-detail requests are optimized to avoid loading a player's full career and to avoid building whole-format discovery/similarity pools during a click.
-=======
->>>>>>> 32c894519d1d3703c8124559016ca18af8eb90d6

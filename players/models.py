@@ -46,10 +46,6 @@ class Match(models.Model):
     class Meta:
         ordering = ["-date"]
         verbose_name_plural = "matches"
-<<<<<<< HEAD
-        indexes = [models.Index(fields=["category", "date"], name="match_cat_date_idx")]
-=======
->>>>>>> 32c894519d1d3703c8124559016ca18af8eb90d6
 
     def __str__(self):
         return f"{self.competition} {self.date}"

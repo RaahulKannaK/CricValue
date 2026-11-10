@@ -1,11 +1,5 @@
 import datetime as dt
-<<<<<<< HEAD
-from django.db.models import Count, Max, F, Window
-from django.db.models.functions import RowNumber
-from django.core.cache import cache
-=======
 from django.db.models import Count, Max
->>>>>>> 32c894519d1d3703c8124559016ca18af8eb90d6
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from .categories import TABS, TAB_BY_SLUG, TAB_BY_KEY, GROUPS, group_of, group_title
@@ -148,51 +142,6 @@ def _chart(points, w=320, h=90, pad=8):
 
 def detail(request, pk):
     p = get_object_or_404(Player, pk=pk)
-<<<<<<< HEAD
-    all_vals = list(p.cat_values.select_related("player").order_by("category", "group"))
-    cat_values = [v for v in all_vals if not v.group]
-    categories = [v.category for v in cat_values]
-
-    # Fetch at most 40 recent performances per format. The previous implementation
-    # loaded the player's entire career across every competition, then repeatedly
-    # filtered that Python list for each chart/profile.
-    if categories:
-        recent_qs = (p.performances.filter(match__category__in=categories)
-                     .annotate(_rank=Window(
-                         expression=RowNumber(),
-                         partition_by=[F("match__category")],
-                         order_by=F("match__date").desc(),
-                     ))
-                     .filter(_rank__lte=40)
-                     .select_related("match")
-                     .order_by("match__category", "-match__date"))
-        by_category = {}
-        for perf in recent_qs:
-            by_category.setdefault(perf.match.category, []).append(perf)
-        all_recent = sorted(
-            (f for group in by_category.values() for f in group),
-            key=lambda f: f.match.date, reverse=True
-        )
-    else:
-        by_category, all_recent = {}, []
-
-    charts, intel = [], []
-    for v in cat_values:
-        fs = by_category.get(v.category, [])
-        cutoff = dt.date.today() - dt.timedelta(days=TAB_BY_KEY[v.category]["active_days"])
-        pool_key = f"cricvalue:detail-pool:{v.category}"
-        cached_pool = cache.get(pool_key)
-        if cached_pool is None:
-            peers = list(CategoryValue.objects.filter(
-                category=v.category, group="", matches__gte=SETTINGS[v.category]["min"],
-                last_played__gte=cutoff
-            ).select_related("player"))
-            opp = opposition_levels(v.category)
-            cached_pool = (pool_from_categoryvalues(peers, opp), opp)
-            cache.set(pool_key, cached_pool, 15 * 60)
-        pool, opp = cached_pool
-        v.est = range_for_categoryvalue(v, pool, v.last_played or dt.date.today(), opp.get(p.pk))
-=======
     all_perfs = list(p.performances.select_related("match"))      # newest first
     charts = []
     for v in p.cat_values.filter(group="").order_by("category"):
@@ -203,7 +152,6 @@ def detail(request, pk):
         opp = opposition_levels(v.category)
         v.est = range_for_categoryvalue(v, pool_from_categoryvalues(peers, opp), v.last_played or dt.date.today(),
                                         opp.get(p.pk))
->>>>>>> 32c894519d1d3703c8124559016ca18af8eb90d6
         v.range_text = v.est["text"]
         pts = history(fs, v.category, float(v.base_value), v.form_score, v.ceiling)
         if len(pts) >= 2:
@@ -211,26 +159,6 @@ def detail(request, pk):
             charts.append({"title": TAB_BY_KEY[v.category]["title"], "v": v, "poly": poly,
                            "lx": lx, "ly": ly, "d1": pts[0][0], "d2": pts[-1][0], "n": len(pts),
                            "change": round(pts[-1][1] - pts[0][1], 1)})
-<<<<<<< HEAD
-
-        # Profiles are cheap on the capped 40-match sample. Discovery and similarity
-        # are pool-wide jobs; only display them here if their cache is already warm.
-        if len(fs) < intel_data.MIN_MATCHES_FOR_PROFILE:
-            continue
-        profile = intelligence.build_profile(fs)
-        discovery_cache = intel_data.cached_discovery_results(v.category)
-        item = {"title": TAB_BY_KEY[v.category]["title"], "v": v, "profile": profile,
-                "similar": intel_data.cached_similar_for(v), "signal": None, "found": None,
-                "signal_pending": discovery_cache is None}
-        found = next((r for r in (discovery_cache or []) if r["id"] == p.pk), None)
-        if found:
-            item.update(signal=found["signal"], found=found)
-        intel.append(item)
-
-    return render(request, "players/detail.html", {
-        "tabs": TABS, "current": "", "p": p, "charts": charts, "intel": intel,
-        "vals": all_vals, "perfs": all_recent[:15]})
-=======
     intel = []
     for v in p.cat_values.filter(group="").order_by("category"):
         fs = [f for f in all_perfs if f.match.category == v.category][:intel_data.PERF_CAP]
@@ -248,7 +176,6 @@ def detail(request, pk):
     return render(request, "players/detail.html", {
         "tabs": TABS, "current": "", "p": p, "charts": charts, "intel": intel,
         "vals": p.cat_values.order_by("category", "group"), "perfs": all_perfs[:15]})
->>>>>>> 32c894519d1d3703c8124559016ca18af8eb90d6
 
 
 def discover(request):

@@ -5,11 +5,6 @@ auction market is modelled to pay) and intelligence.* (how the player actually p
 
 Two ideas are kept deliberately separate:
 
-<<<<<<< HEAD
-  MARKET PRICE  price_range.estimate()["mid"]. Competition ceilings, evidence confidence,
-=======
-  MARKET PRICE  price_range.estimate()["mid"]. Competition ceilings, evidence caps,
->>>>>>> 32c894519d1d3703c8124559016ca18af8eb90d6
                 role demand, big-stage reputation and scouting ratings all push it.
   WORTH         what the player's own performance, form, consistency and potential
                 say, with no market effects. Shrunk towards the market price when the
@@ -73,16 +68,12 @@ def value_signal(c, raw_rank):
     cons01 = _clamp(float(c["consistency"] or 0) / 100.0)
     score = _clamp(0.60 * raw_rank + 0.15 * form01 + 0.15 * f["potential_index"] + 0.10 * cons01)
     worth_raw = _interp(PRICE_CURVE, score)
-<<<<<<< HEAD
-    # No blanket stats-only cap: use the same quality/potential scale as the
-    # market engine, then shrink towards market price according to evidence.
-=======
+
     if f["scouting"] is None:
         # Same rule as the price engine: statistics alone cannot prove franchise demand, so
         # without a scouting rating "worth" is held at the same neutral cap. Otherwise every
         # top performer would be flagged undervalued purely because of that deliberate cap.
         worth_raw = min(worth_raw, MARKET["stats_only_cap"])
->>>>>>> 32c894519d1d3703c8124559016ca18af8eb90d6
     shrink = 0.40 + 0.60 * conf                     # thin evidence: stay close to the market price
     worth = mid + (worth_raw - mid) * shrink
     gap = worth - mid
@@ -154,11 +145,6 @@ def projection(c, brk):
     future = min(23.0, mid * (1.0 + growth), mid + 8.0)
     width = 0.15 + 0.25 * (1.0 - conf)
     lo = max(0.5, _round_half(future * (1.0 - width)))
-<<<<<<< HEAD
-    hi = min(23.0, max(lo + 1.0, _round_half(future * (1.0 + width))))
-=======
-    hi = max(lo + 1.0, _round_half(future * (1.0 + width)))
->>>>>>> 32c894519d1d3703c8124559016ca18af8eb90d6
     return {"low": lo, "high": hi, "mid": round(future, 1), "growth_pct": round(growth * 100),
             "text": f"₹{lo:g}–{hi:g} Cr",
             "confidence": "low" if conf < 0.4 else "medium" if conf < 0.7 else "good"}

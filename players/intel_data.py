@@ -31,17 +31,9 @@ FMT_OF_CATEGORY = {"T20": "T20", "ODI": "ODI", "TEST": "TEST", "LEAGUE": "T20",
 
 
 def clear_cache():
-<<<<<<< HEAD
-    """Invalidate pool-derived data after an import or valuation recalculation."""
-    keys = []
-    for key in TAB_BY_KEY:
-        keys.extend([f"cricvalue:discover:{key}", f"cricvalue:vectors:{key}",
-                     f"cricvalue:detail-pool:{key}", f"cricvalue:opposition:{key}:all"])
-    cache.delete_many(keys)
-=======
+
     for key in TAB_BY_KEY:
         cache.delete_many([f"cricvalue:discover:{key}", f"cricvalue:vectors:{key}"])
->>>>>>> 32c894519d1d3703c8124559016ca18af8eb90d6
 
 
 def pool_queryset(key, group=""):
@@ -136,7 +128,6 @@ def similar_for(cv, k=5):
         vectors[cv.player_id] = _vector(cv, _totals(cv.category, [cv.player_id]).get(cv.player_id, {}),
                                         cv.category)
     return intelligence.similar_players(cv.player_id, vectors, names, k)
-<<<<<<< HEAD
 
 
 def cached_discovery_results(key):
@@ -155,5 +146,3 @@ def cached_similar_for(cv, k=5):
         vectors = dict(vectors)
         vectors[cv.player_id] = _vector(cv, totals, cv.category)
     return intelligence.similar_players(cv.player_id, vectors, names, k)
-=======
->>>>>>> 32c894519d1d3703c8124559016ca18af8eb90d6

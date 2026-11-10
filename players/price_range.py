@@ -44,36 +44,18 @@ MARKET = {
     "marquee_min_scale": 0.80,     # ... for an elite/strong nation ...
     "marquee_min_quality": 0.55,   # ... and still in the better half of the pool
     "marquee_max_lift": 0.22,
-<<<<<<< HEAD
-    # Statistical evidence can justify a premium without a manual scouting score.
-    # Potential remains a separate input; no blanket cap compresses proven players.
-=======
-    # Statistics alone cannot prove franchise demand: until a scouting rating
-    # confirms it, a stats-only estimate is held at this neutral value.
-    "stats_only_cap": 9.0,
->>>>>>> 32c894519d1d3703c8124559016ca18af8eb90d6
 }
 
 # Competition level (0-1: nation strength blended with opposition actually faced)
 # -> highest neutral price the evidence can support. This is a ceiling on the
 # LEVEL of competition, not on match counts. Facing strong opposition raises it.
-<<<<<<< HEAD
-LEVEL_CEILING = [(0.30, 3.0), (0.40, 4.5), (0.58, 7.0), (0.75, 14.0), (0.90, 19.0), (1.00, 23.0)]
-=======
-LEVEL_CEILING = [(0.30, 3.0), (0.40, 4.5), (0.58, 6.5), (0.75, 12.5), (0.90, 17.0), (1.00, 23.0)]
->>>>>>> 32c894519d1d3703c8124559016ca18af8eb90d6
 # Transfer of a statistical record to franchise level (0.40 weak competition .. 1.0 elite)
 TRANSFER_FLOOR = 0.40
 
 # F (franchise score 0-1)  ->  neutral-form price in ₹ Cr
 PRICE_CURVE = [
-<<<<<<< HEAD
-    (0.00, 0.5), (0.20, 1.5), (0.35, 3.0), (0.50, 5.5), (0.62, 8.5),
-    (0.72, 12.0), (0.82, 15.5), (0.90, 18.5), (0.96, 20.5), (1.00, 22.5),
-=======
     (0.00, 0.5), (0.25, 2.0), (0.45, 4.5), (0.60, 7.5), (0.72, 10.5),
     (0.82, 13.0), (0.90, 15.0), (0.96, 17.0), (1.00, 19.0),
->>>>>>> 32c894519d1d3703c8124559016ca18af8eb90d6
 ]
 
 # Scouting / market rating (0-100, stored in Player.potential_rating) -> ₹ Cr.
@@ -82,11 +64,7 @@ PRICE_CURVE = [
 # enters the model. Blended with the statistical estimate, never used alone.
 SCOUT_CURVE = [(40, 2.5), (50, 4.5), (60, 6.5), (70, 9.5), (80, 12.5),
                (90, 15.5), (95, 17.5), (100, 19.0)]
-<<<<<<< HEAD
-SCOUT_WEIGHT = 0.65
-=======
 SCOUT_WEIGHT = 0.80
->>>>>>> 32c894519d1d3703c8124559016ca18af8eb90d6
 
 # Blueprint section 8 bands, used only for the label.
 BANDS = [
@@ -226,14 +204,8 @@ def estimate(name, role, country, quality, form_pct, confidence, consistency,
                       0.08 + (matches - MARKET["marquee_matches"]) / 1000.0 + 0.10 * (qi - 0.55))
         neutral *= 1.0 + marquee
 
-<<<<<<< HEAD
-    # Do not cap every stats-only player at the same price. The competition
-    # ceiling below is the evidence-based safeguard; quality and potential
-    # percentiles should be allowed to separate elite players naturally.
-=======
     if scouting is None:
         neutral = min(neutral, MARKET["stats_only_cap"])
->>>>>>> 32c894519d1d3703c8124559016ca18af8eb90d6
     stats_neutral = neutral
     if scouting is not None:
         market = _interp(SCOUT_CURVE, float(scouting))
@@ -256,31 +228,16 @@ def estimate(name, role, country, quality, form_pct, confidence, consistency,
     mid = min(23.0, ceiling, neutral * ff) if ceiling < 23 else min(23.0, neutral * ff)
 
     # range width: evidence, inactivity, level of competition; upward skew for upside
-<<<<<<< HEAD
-    width = 0.15 + 0.18 * (1.0 - conf) + 0.12 * (1.0 - transfer)
-    if idle > 45:
-        width += min(0.10, (idle - 45) / 500.0)
-    up_skew = 0.12 if (pi >= 0.75 and matches < 60) else 0.0
-=======
     width = 0.09 + 0.12 * (1.0 - conf) + 0.10 * (1.0 - transfer)
     if idle > 45:
         width += min(0.08, (idle - 45) / 600.0)
     up_skew = 0.07 if (pi >= 0.75 and matches < 60) else 0.0
->>>>>>> 32c894519d1d3703c8124559016ca18af8eb90d6
     low = max(0.5, mid * (1.0 - width))
     high = min(23.0, mid * (1.0 + width + up_skew))
     lo_r, hi_r = _round_half(low), _round_half(high)
     lo_r = max(0.5, lo_r)
-<<<<<<< HEAD
-    # A range should communicate genuine auction uncertainty, not look like a
-    # near-fixed quote after rounding to half-crore increments.
-    min_spread = max(1.5, mid * 0.24)
-    if hi_r - lo_r < min_spread:
-        hi_r = min(23.0, _round_half(lo_r + min_spread, "up"))
-=======
     if hi_r - lo_r < 1.0:
         hi_r = lo_r + 1.0
->>>>>>> 32c894519d1d3703c8124559016ca18af8eb90d6
 
     # trend = what form adds or removes
     delta = mid - neutral
@@ -336,13 +293,7 @@ def competition_level(country, avg_opp=None):
     if avg_opp is None:
         return scale, scale
     opp_idx = _clamp((float(avg_opp) - 0.65) / 0.60)
-<<<<<<< HEAD
-    # National level is the stronger signal; opposition is a secondary adjustment.
-    # A normal-strength opponent must not halve the ceiling for an elite nation.
-    return scale, 0.75 * scale + 0.25 * opp_idx
-=======
     return scale, 0.5 * scale + 0.5 * opp_idx
->>>>>>> 32c894519d1d3703c8124559016ca18af8eb90d6
 
 
 def transfer_factor(level):
@@ -372,35 +323,16 @@ def range_for_categoryvalue(cv, pool, ref_date=None, avg_opp=None):
 
 
 def opposition_levels(category, competitions=None):
-<<<<<<< HEAD
-    """Cached {player_id: average opposition factor}; internationals only."""
-    from django.core.cache import cache
-=======
     """{player_id: average opposition factor faced}; internationals only."""
->>>>>>> 32c894519d1d3703c8124559016ca18af8eb90d6
     from django.db.models import Avg
     from .models import Performance
     from .valuation import INTL_CATS
     if category not in INTL_CATS:
         return {}
-<<<<<<< HEAD
-    comp_key = "all" if not competitions else ",".join(sorted(str(x) for x in competitions))
-    cache_key = f"cricvalue:opposition:{category}:{comp_key}"
-    cached = cache.get(cache_key)
-    if cached is not None:
-        return cached
-    qs = Performance.objects.filter(match__category=category)
-    if competitions:
-        qs = qs.filter(match__competition__in=competitions)
-    result = dict(qs.values_list("player_id").annotate(a=Avg("opp_strength")))
-    cache.set(cache_key, result, 15 * 60)
-    return result
-=======
     qs = Performance.objects.filter(match__category=category)
     if competitions:
         qs = qs.filter(match__competition__in=competitions)
     return dict(qs.values_list("player_id").annotate(a=Avg("opp_strength")))
->>>>>>> 32c894519d1d3703c8124559016ca18af8eb90d6
 
 
 def calibration_report(results_by_name):

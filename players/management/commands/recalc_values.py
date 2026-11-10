@@ -615,10 +615,3 @@ class Command(BaseCommand):
                 f"players and {updated} category values."
             )
         )
-<<<<<<< HEAD
-
-        from players.intel_data import clear_cache
-        clear_cache()
-        self.stdout.write("Cleared cached player pools and discovery analysis.")
-=======
->>>>>>> 32c894519d1d3703c8124559016ca18af8eb90d6

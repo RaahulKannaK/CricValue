@@ -53,11 +53,6 @@
       <ul class="ev">{% for x in it.signal.reasons %}<li>{{ x|capfirst }}</li>{% endfor %}</ul>
       {% if it.found.tag_titles %}<div class="brk">{% for tt in it.found.tag_titles %}<span class="chip tag-chip">{{ tt }}</span> {% endfor %}</div>{% endif %}
       {% if it.found.projection %}<div class="brk" style="margin-top:8px">Projected in about 12 months if the trajectory holds: <b class="up">{{ it.found.projection.text }}</b> ({{ it.found.projection.confidence }} confidence)</div>{% endif %}
-<<<<<<< HEAD
-    {% elif it.signal_pending %}
-      <p class="sub">Pool-wide value signal is not cached yet. The player profile and auction range above are calculated independently.</p>
-=======
->>>>>>> 32c894519d1d3703c8124559016ca18af8eb90d6
     {% else %}
       <p class="sub">Not in this format's active pool (few matches or inactive), so no value signal.</p>
     {% endif %}
