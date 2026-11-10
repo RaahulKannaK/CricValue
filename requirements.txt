@@ -1,2 +1,4 @@
 Django>=5.0
 boto3
+
+mysqlclient>=2.2.7
