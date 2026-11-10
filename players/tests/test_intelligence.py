@@ -227,12 +227,22 @@ class Discovery(unittest.TestCase):
             self.assertGreaterEqual(r["breakout"]["score"], 0)
             self.assertLessEqual(r["breakout"]["score"], 100)
 
+<<<<<<< HEAD
     def test_stats_only_star_can_receive_a_premium_from_performance(self):
         """No arbitrary ₹9Cr cap: elite evidence can support a premium without manual scouting."""
         r = self.res["Star"]
         self.assertIsNone(r["est"]["factors"]["scouting"])
         self.assertGreater(r["est"]["mid"], 6.0)
         self.assertGreaterEqual(r["est"]["high"] - r["est"]["low"], 1.5)
+=======
+    def test_stats_only_star_is_not_flagged_just_for_the_neutral_cap(self):
+        """The engine holds stats-only players at a neutral cap; 'worth' must obey the same cap."""
+        r = self.res["Star"]
+        self.assertIsNone(r["est"]["factors"]["scouting"])
+        # worth is capped at 9 then shrunk towards the market price: it can never exceed either
+        self.assertLessEqual(r["signal"]["worth"], max(9.0, r["signal"]["market"]) + 1e-6)
+        self.assertNotEqual(r["signal"]["label"], "Undervalued")
+>>>>>>> 32c894519d1d3703c8124559016ca18af8eb90d6
 
     def test_most_players_are_fairly_valued(self):
         fair = sum(1 for r in self.all if r["signal"]["label"] == "Fairly valued")
