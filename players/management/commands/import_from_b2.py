@@ -69,7 +69,7 @@ class Command(BaseCommand):
 
         self.stdout.write(f"Imported {new} new matches, skipped {skipped}, failed {failed}")
         if new and not o["no_recalc"]:
-            call_command("recalc_values", "--base")
+            call_command("recalc_market_values")
 
         latest = Match.objects.aggregate(m=Max("date"))["m"]
         report = {
