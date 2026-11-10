@@ -55,7 +55,16 @@ MARKET = {
 # LEVEL of competition, not on match counts. Facing strong opposition raises it.
 # Transfer of a statistical record to franchise level (0.40 weak competition .. 1.0 elite)
 TRANSFER_FLOOR = 0.40
-
+# Maximum neutral auction value supported by each competition level.
+# Level 0.0 = weakest competition; level 1.0 = elite competition.
+LEVEL_CEILING = [
+    (0.00, 3.0),
+    (0.20, 5.0),
+    (0.40, 8.0),
+    (0.60, 12.0),
+    (0.80, 17.0),
+    (1.00, 23.0),
+]
 # F (franchise score 0-1)  ->  neutral-form price in ₹ Cr
 PRICE_CURVE = [
     (0.00, 0.5), (0.25, 2.0), (0.45, 4.5), (0.60, 7.5), (0.72, 10.5),
