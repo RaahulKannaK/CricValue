@@ -1,0 +1,13 @@
+[Unit]
+Description=CricValue (gunicorn)
+After=network.target mysql.service
+
+[Service]
+User=cricvalue
+WorkingDirectory=/srv/cricvalue
+EnvironmentFile=/etc/cricvalue.env
+ExecStart=/srv/cricvalue/venv/bin/gunicorn cricvalue.wsgi:application --workers 3 --bind 127.0.0.1:8001 --timeout 60
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

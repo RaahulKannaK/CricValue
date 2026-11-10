@@ -1,0 +1,51 @@
+{% extends "players/base.html" %}
+{% block title %}Compare players · CricValue{% endblock %}
+{% block body %}
+<h2>Compare players <small class="sub">{{ cat_title }}</small></h2>
+<div class="chips">{% for t in all_tabs %}<a href="?cat={{ t.key }}" class="{% if t.key == cat %}on{% endif %}">{{ t.title }}</a>{% endfor %}</div>
+<div class="trade">
+  <section class="side" data-side="a"><h3>Player A</h3>
+    <div class="picker"><input type="search" placeholder="Search player…" autocomplete="off"><div class="results"></div></div>
+    {% if a %}<p class="pick-name"><a href="{% url 'detail' a.player.pk %}">{{ a.player.name }}</a> <small>{{ a.player.country }}</small></p>{% endif %}</section>
+  <section class="side" data-side="b"><h3>Player B</h3>
+    <div class="picker"><input type="search" placeholder="Search player…" autocomplete="off"><div class="results"></div></div>
+    {% if b %}<p class="pick-name"><a href="{% url 'detail' b.player.pk %}">{{ b.player.name }}</a> <small>{{ b.player.country }}</small></p>{% endif %}</section>
+</div>
+{% if rows %}
+<div class="card"><div class="tw"><table class="cmp">
+<tr><th></th><th class="num">{{ a.player.name }}</th><th class="num">{{ b.player.name }}</th></tr>
+{% for r in rows %}<tr><td>{{ r.label }}</td><td class="num {% if r.win == 'a' %}win{% endif %}">{{ r.a }}</td><td class="num {% if r.win == 'b' %}win{% endif %}">{{ r.b }}</td></tr>{% endfor %}
+</table></div></div>
+<p class="sub">Highlighted = higher value. All numbers are model estimates for the {{ cat_title }} format.</p>
+{% else %}<p class="sub">Pick two players to compare them in the {{ cat_title }} format.</p>{% endif %}
+<script>
+(function () {
+  var CAT = "{{ cat }}", API = "{% url 'api_search' %}", timer = null;
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
+  function go(side, id) {
+    var p = new URLSearchParams(location.search); p.set("cat", CAT); p.set(side, id); location.search = p.toString();
+  }
+  document.querySelectorAll(".side").forEach(function (box) {
+    var side = box.getAttribute("data-side"), input = box.querySelector("input"), res = box.querySelector(".results");
+    input.addEventListener("input", function () {
+      clearTimeout(timer);
+      var q = input.value.trim();
+      if (q.length < 2) { res.textContent = ""; return; }
+      timer = setTimeout(function () {
+        fetch(API + "?cat=" + CAT + "&q=" + encodeURIComponent(q)).then(function (r) { return r.json(); }).then(function (d) {
+          res.textContent = "";
+          d.results.forEach(function (p) {
+            var b = el("button", "hit"); b.type = "button";
+            b.appendChild(el("span", "nm", p.name)); b.appendChild(el("small", "", (p.country ? p.country + " · " : "") + p.role));
+            b.appendChild(el("span", "val", "₹" + p.total.toFixed(1) + " Cr"));
+            b.onclick = function () { go(side, p.id); };
+            res.appendChild(b);
+          });
+          if (!d.results.length) res.appendChild(el("div", "none", "No players found in this format"));
+        });
+      }, 250);
+    });
+  });
+})();
+</script>
+{% endblock %}

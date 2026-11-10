@@ -1,0 +1,4 @@
+# Copy to /etc/cron.d/cricvalue
+# daily data update 01:30 server time, database backup 03:00
+30 1 * * * cricvalue /srv/cricvalue/deploy/daily_update.sh
+0 3 * * * root mysqldump cricvalue | gzip > /var/backups/cricvalue-$(date +\%F).sql.gz && find /var/backups -name 'cricvalue-*.sql.gz' -mtime +14 -delete

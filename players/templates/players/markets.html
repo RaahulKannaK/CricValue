@@ -1,0 +1,17 @@
+{% extends "players/base.html" %}
+{% block title %}Auction markets · CricValue{% endblock %}
+{% block body %}
+<h2>Auction market profiles</h2>
+<p class="sub">Each market uses the player's global format value as its starting point, then applies its purse, squad size, competition fit and role scarcity.</p>
+<div class="stats">
+{% for m in profiles %}
+  <a class="stat" href="{% url 'market_detail' m.slug %}" style="text-decoration:none;color:inherit">
+    <h3>{{ m.name }}</h3><div class="big">₹{{ m.team_purse }} Cr</div>
+    <div class="brk">{{ m.get_cricket_format_display }} · {{ m.team_count }} teams · {{ m.squad_size }} squad slots</div>
+    <div class="brk">{% if m.overseas_limit %}Overseas limit: {{ m.overseas_limit }}{% else %}No overseas limit configured{% endif %}</div>
+    <span class="up">View market valuations →</span>
+  </a>
+{% empty %}<p class="sub">No active market profiles. Add one in Django Admin under Auction market profiles.</p>{% endfor %}
+</div>
+<p class="sub">To add a competition such as BBL, PSL or a custom league, create a profile in Django Admin and set its format, source category/group and purse.</p>
+{% endblock %}
