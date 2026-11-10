@@ -42,5 +42,6 @@ DATABASES = {
 }
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
 TIME_ZONE = "Asia/Kolkata"
 USE_TZ = True
