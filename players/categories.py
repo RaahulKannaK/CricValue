@@ -27,21 +27,21 @@ TABS = [
         "key": "LEAGUE",
         "title": "Leagues",
         "sub": "IPL, BBL, Hundred, T10 and other leagues",
-        "active_days": 365,
+        "active_days": 730,
     },
     {
         "slug": "domestic-t20",
         "key": "DOM_T20",
         "title": "Domestic T20",
         "sub": "Domestic T20 competitions",
-        "active_days": 730,
+        "active_days": 1095,
     },
     {
         "slug": "domestic-odi",
         "key": "DOM_ODI",
         "title": "Domestic ODI",
         "sub": "Domestic List A / ODI competitions",
-        "active_days": 730,
+        "active_days": 1095,
     },
     {
         "slug": "domestic-test",
@@ -55,7 +55,7 @@ TABS = [
         "key": "DOM_IN",
         "title": "Domestic India (legacy)",
         "sub": "Older combined domestic records; new imports are format-specific",
-        "active_days": 1095,
+        "active_days": 2000,
     },
 ]
 
