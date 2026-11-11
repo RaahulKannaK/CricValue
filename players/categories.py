@@ -1,14 +1,64 @@
 """Tab / category definitions. Pure Python."""
+
 TABS = [
-    {"slug": "t20", "key": "T20", "title": "T20", "sub": "International T20", "active_days": 365},
-    {"slug": "odi", "key": "ODI", "title": "ODI", "sub": "International ODI", "active_days": 365},
-    {"slug": "test", "key": "TEST", "title": "Test", "sub": "International Test", "active_days": 540},
-    {"slug": "league", "key": "LEAGUE", "title": "Leagues", "sub": "IPL, BBL, Hundred, T10 and other leagues", "active_days": 365},
-    {"slug": "domestic-t20", "key": "DOM_T20", "title": "Domestic T20", "sub": "Domestic T20 competitions", "active_days": 365},
-    {"slug": "domestic-odi", "key": "DOM_ODI", "title": "Domestic ODI", "sub": "Domestic List A / ODI competitions", "active_days": 365},
-    {"slug": "domestic-test", "key": "DOM_TEST", "title": "Domestic First Class", "sub": "Ranji Trophy and other first-class competitions", "active_days": 540},
-    {"slug": "domestic-india-legacy", "key": "DOM_IN", "title": "Domestic India (legacy)", "sub": "Older combined domestic records; new imports are format-specific", "active_days": 540},
+    {
+        "slug": "t20",
+        "key": "T20",
+        "title": "T20",
+        "sub": "International T20",
+        "active_days": 365,
+    },
+    {
+        "slug": "odi",
+        "key": "ODI",
+        "title": "ODI",
+        "sub": "International ODI",
+        "active_days": 365,
+    },
+    {
+        "slug": "test",
+        "key": "TEST",
+        "title": "Test",
+        "sub": "International Test",
+        "active_days": 540,
+    },
+    {
+        "slug": "league",
+        "key": "LEAGUE",
+        "title": "Leagues",
+        "sub": "IPL, BBL, Hundred, T10 and other leagues",
+        "active_days": 365,
+    },
+    {
+        "slug": "domestic-t20",
+        "key": "DOM_T20",
+        "title": "Domestic T20",
+        "sub": "Domestic T20 competitions",
+        "active_days": 730,
+    },
+    {
+        "slug": "domestic-odi",
+        "key": "DOM_ODI",
+        "title": "Domestic ODI",
+        "sub": "Domestic List A / ODI competitions",
+        "active_days": 730,
+    },
+    {
+        "slug": "domestic-test",
+        "key": "DOM_TEST",
+        "title": "Domestic First Class",
+        "sub": "Ranji Trophy and other first-class competitions",
+        "active_days": 1095,
+    },
+    {
+        "slug": "domestic-india-legacy",
+        "key": "DOM_IN",
+        "title": "Domestic India (legacy)",
+        "sub": "Older combined domestic records; new imports are format-specific",
+        "active_days": 1095,
+    },
 ]
+
 TAB_BY_SLUG = {t["slug"]: t for t in TABS}
 TAB_BY_KEY = {t["key"]: t for t in TABS}
 CATEGORY_CHOICES = [(t["key"], t["title"]) for t in TABS]
