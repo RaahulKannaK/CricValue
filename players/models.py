@@ -41,7 +41,7 @@ class Match(models.Model):
     # Captured from the source match scorecard/Cricsheet info.players.
     lineups = models.JSONField(default=dict, blank=True)
     strength = models.FloatField(default=1.0)
-    external_id = models.CharField(max_length=60, blank=True, db_index=True)
+    external_id = models.CharField(max_length=60, blank=True, null=True, unique=True)
 
     class Meta:
         ordering = ["-date"]

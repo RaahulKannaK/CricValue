@@ -1,7 +1,21 @@
 """Turns one Cricsheet match JSON into per-player stats. No Django imports."""
 FMT = {"T20": "T20", "IT20": "T20", "ODI": "ODI", "ODM": "ODI", "Test": "TEST", "MDM": "TEST"}
-DOM_WORDS = ("ranji", "vijay hazare", "syed mushtaq", "duleep", "sheffield shield",
-             "county championship", "one-day cup", "plunket", "ford trophy", "marsh")
+# Known non-franchise domestic competitions. Cricsheet does not provide a
+# universal domestic-vs-franchise flag, so keep this list explicit and
+# conservative: unknown non-international events remain LEAGUE until reviewed.
+DOM_WORDS = (
+    "ranji", "vijay hazare", "syed mushtaq", "duleep", "irani cup",
+    "deodhar", "maharaja trophy", "sheffield shield", "marsh cup",
+    "marsh one-day", "one-day cup", "county championship",
+    "bob willis trophy", "plunket shield", "ford trophy", "super smash",
+    "quaid-e-azam", "quaid e azam", "pakistan cup", "national t20 cup",
+    "president's trophy", "presidents trophy", "national cricket league",
+    "bangladesh cricket league", "dhaka premier league",
+    "csa 4-day", "csa 4 day", "provincial one-day",
+    "provincial one day", "sunfoil", "regional 4-day",
+    "regional 4 day", "super50", "major club",
+    "premier league tournament", "major clubs", "slc major",
+)
 NO_CREDIT = {"run out", "retired hurt", "retired out", "obstructing the field"}
 
 # Phase boundaries by format, as (end-of-powerplay over, end-of-middle over), 0-based

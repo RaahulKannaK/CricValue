@@ -53,11 +53,17 @@ class Command(BaseCommand):
                 continue
             try:
                 result = importer.import_one(ext, json.loads(load()))
-            except Exception as e:      # keep going; the run is reported as failed at the end
+            except Exception as e:      # keep going for bad files; stop immediately on a hard B2 cap
                 failed += 1
                 first_error = first_error or f"{ext}: {e}"[:300]
-                if failed <= 20:
-                    self.stderr.write(f"failed {ext}: {e}")
+                self.stderr.write(f"failed {ext}: {e}")
+                message = str(e).lower()
+                if ("cap exceeded" in message or "download bandwidth" in message
+                        or "class b" in message or "accessdenied" in message):
+                    self.stderr.write(self.style.WARNING(
+                        "Backblaze is blocking downloads. Stopping now to avoid thousands "
+                        "of repeated requests; resolve Caps & Alerts before retrying."))
+                    break
                 continue
             known.add(ext)
             if result == "new":
@@ -69,6 +75,9 @@ class Command(BaseCommand):
 
         self.stdout.write(f"Imported {new} new matches, skipped {skipped}, failed {failed}")
         if new and not o["no_recalc"]:
+            # Rebuild category-level values first (including DOM_T20/DOM_ODI/DOM_TEST),
+            # then refresh configured auction-market estimates from those values.
+            call_command("recalc_values")
             call_command("recalc_market_values")
 
         latest = Match.objects.aggregate(m=Max("date"))["m"]

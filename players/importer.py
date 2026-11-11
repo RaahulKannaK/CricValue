@@ -5,7 +5,7 @@ memory and a match's performances are written with one bulk insert. That matters
 when the database is remote (Aiven): a full import would otherwise run several
 queries per player per match.
 """
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from players.categories import category_of
@@ -49,7 +49,10 @@ class MatchImporter:
         self.by_name.setdefault((name, country), pk)
 
     def import_one(self, ext, data):
-        """Returns "new" or "skipped". Raises KeyError/ValueError on malformed JSON."""
+        """Returns "new" or "skipped"; safe against repeated/concurrent imports."""
+        ext = str(ext or "").strip()
+        if not ext or Match.objects.filter(external_id=ext).exists():
+            return "skipped"
         m = parse_match(data, self.women)
         if not m or not m["date"]:
             return "skipped"
@@ -89,6 +92,13 @@ class MatchImporter:
                         wickets=r["wickets"], runs_conceded=r["conceded"],
                         overs=r["overs"], phases=r.get("phases") or {})
                 Performance.objects.bulk_create(rows.values(), batch_size=500)
+        except IntegrityError:
+            # A concurrent worker may have inserted this external ID after the
+            # initial existence check. The unique DB constraint is authoritative.
+            self._load()
+            if Match.objects.filter(external_id=ext).exists():
+                return "skipped"
+            raise
         except Exception:
             self._load()      # the rolled-back transaction may have left stale cache entries
             raise
