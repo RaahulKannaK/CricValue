@@ -50,8 +50,8 @@ def home(request):
 # AUCTION TAB / PLAYER LIST
 # ============================================================
 
-def tab(request, slug):
 
+def tab(request, slug):
     t = TAB_BY_SLUG.get(slug)
 
     if not t:
@@ -60,92 +60,81 @@ def tab(request, slug):
     key = t["key"]
     g = request.GET
 
-    q = g.get("q", "")
+    q = g.get("q", "").strip()
     country = g.get("country", "")
     role = g.get("role", "")
-
     grp = g.get("grp", "")
     sort = g.get("sort", "total")
-    inactive = bool(g.get("inactive"))
-
     tier = g.get("tier", "")
 
+    # Only restrict the displayed list when the user explicitly
+    # selects "Active players only".
+    active_only = g.get("active_only") == "1"
+
     # --------------------------------------------------------
-    # MATCH DATA
+    # MATCH DATA AND COMPETITION GROUPS
     # --------------------------------------------------------
 
-    ms = Match.objects.filter(
-        category=key
-    )
+    ms = Match.objects.filter(category=key)
 
     chips = []
     comps = {}
 
     if key in GROUPS:
-
-        counts = {}
-
         for r in (
             ms.values("competition")
             .annotate(n=Count("id"))
         ):
+            gs = group_of(key, r["competition"])
 
-            gs = group_of(
-                key,
-                r["competition"],
+            comps.setdefault(gs, []).append(r["competition"])
+
+        # Chip counts must represent unique players, not matches.
+        player_counts = {
+            item["group"]: item["n"]
+            for item in (
+                CategoryValue.objects
+                .filter(category=key)
+                .values("group")
+                .annotate(n=Count("player_id", distinct=True))
             )
+        }
 
-            comps.setdefault(
-                gs,
-                [],
-            ).append(r["competition"])
-
-            counts[gs] = (
-                counts.get(gs, 0)
-                + r["n"]
-            )
-
-        order = (
-            [s for s, _, _ in GROUPS[key]]
-            + ["other"]
-        )
+        order = [s for s, _, _ in GROUPS[key]] + ["other"]
 
         chips = [
             {
                 "slug": s,
                 "title": group_title(s),
-                "n": counts[s],
+                "n": player_counts.get(s, 0),
             }
             for s in order
-            if s in counts
+            if s in comps
         ]
 
     if grp not in comps:
         grp = ""
 
     ref_qs = (
-        ms.filter(
-            competition__in=comps[grp]
-        )
+        ms.filter(competition__in=comps[grp])
         if grp else ms
     )
 
-    ref = ref_qs.aggregate(
-        m=Max("date")
-    )["m"]
+    ref = ref_qs.aggregate(m=Max("date"))["m"]
 
     # --------------------------------------------------------
-    # PLAYER QUERY
+    # COMPLETE PLAYER POOL
     # --------------------------------------------------------
 
     cutoff = (
         dt.date.today()
-        - dt.timedelta(
-            days=t["active_days"]
-        )
+        - dt.timedelta(days=t["active_days"])
     )
 
-    qs = (
+    # IMPORTANT:
+    # Do not apply the minimum-match or recent-activity filters
+    # to the default player pool.
+    base_qs = (
         CategoryValue.objects
         .filter(
             category=key,
@@ -154,60 +143,48 @@ def tab(request, slug):
         .select_related("player")
     )
 
-    if not inactive:
+    # Use the complete player pool for valuation calculations.
+    opp = opposition_levels(
+        key,
+        comps[grp] if grp else None,
+    )
 
+    pool = pool_from_categoryvalues(
+        base_qs,
+        opp,
+    )
+
+    pool_all = list(base_qs)
+
+    raw_pool = Pool(
+        [c.quality_score for c in pool_all],
+        [c.potential_score for c in pool_all],
+    )
+
+    # --------------------------------------------------------
+    # OPTIONAL ACTIVE-ONLY FILTER
+    # --------------------------------------------------------
+
+    qs = base_qs
+
+    if active_only:
         qs = qs.filter(
             matches__gte=SETTINGS[key]["min"],
             last_played__gte=cutoff,
         )
 
     # --------------------------------------------------------
-    # COMPLETE PLAYER POOL
-    # --------------------------------------------------------
-
-    opp = opposition_levels(
-        key,
-        comps[grp] if grp else None,
-    )
-
-    # Optimized pool construction.
-    pool = pool_from_categoryvalues(
-        qs,
-        opp,
-    )
-
-    # Evaluate the unfiltered pool once.
-    pool_all = list(qs)
-
-    raw_pool = Pool(
-        [
-            c.quality_score
-            for c in pool_all
-        ],
-        [
-            c.potential_score
-            for c in pool_all
-        ],
-    )
-
-    # --------------------------------------------------------
     # SEARCH FILTERS
     # --------------------------------------------------------
 
     if q:
-        qs = qs.filter(
-            player__name__icontains=q
-        )
+        qs = qs.filter(player__name__icontains=q)
 
     if country:
-        qs = qs.filter(
-            player__country=country
-        )
+        qs = qs.filter(player__country=country)
 
     if role:
-        qs = qs.filter(
-            player__role=role
-        )
+        qs = qs.filter(player__role=role)
 
     rows = list(qs)
 
@@ -216,7 +193,6 @@ def tab(request, slug):
     # --------------------------------------------------------
 
     for c in rows:
-
         rng = range_for_categoryvalue(
             c,
             pool,
@@ -225,7 +201,6 @@ def tab(request, slug):
         )
 
         c.est = rng
-
         c.range_mid = rng["mid"]
         c.range_text = rng["text"]
 
@@ -255,9 +230,7 @@ def tab(request, slug):
                 "consistency": c.consistency_score,
                 "confidence": c.confidence_score,
             },
-            raw_pool.quality_index(
-                c.quality_score
-            ),
+            raw_pool.quality_index(c.quality_score),
         )
 
     # --------------------------------------------------------
@@ -268,10 +241,7 @@ def tab(request, slug):
         "total": lambda c: c.range_mid,
         "form": lambda c: c.form_score,
         "value": lambda c: c.signal["gap"],
-    }.get(
-        sort,
-        lambda c: c.range_mid,
-    )
+    }.get(sort, lambda c: c.range_mid)
 
     rows = sorted(
         rows,
@@ -284,7 +254,6 @@ def tab(request, slug):
     # --------------------------------------------------------
 
     for c in rows:
-
         c.active = bool(
             c.last_played
             and c.last_played >= cutoff
@@ -304,13 +273,9 @@ def tab(request, slug):
 
         c.price_band_title = (
             c.price_band or "unrated"
-        ).replace(
-            "_",
-            " ",
-        ).title()
+        ).replace("_", " ").title()
 
     if tier in TIER_TITLES:
-
         rows = [
             c for c in rows
             if c.tier == tier
@@ -325,18 +290,12 @@ def tab(request, slug):
 
         "rising": sum(
             1 for c in rows
-            if c.est["momentum"] in (
-                "Surging",
-                "Rising",
-            )
+            if c.est["momentum"] in ("Surging", "Rising")
         ),
 
         "falling": sum(
             1 for c in rows
-            if c.est["momentum"] in (
-                "Cooling",
-                "Falling",
-            )
+            if c.est["momentum"] in ("Cooling", "Falling")
         ),
 
         "undervalued": sum(
@@ -366,18 +325,10 @@ def tab(request, slug):
             group=grp,
         )
         .exclude(
-            player__country__in=[
-                "",
-                "Unknown",
-            ]
+            player__country__in=["", "Unknown"]
         )
-        .order_by(
-            "player__country"
-        )
-        .values_list(
-            "player__country",
-            flat=True,
-        )
+        .order_by("player__country")
+        .values_list("player__country", flat=True)
         .distinct()
     )
 
@@ -403,15 +354,13 @@ def tab(request, slug):
             "axis": RANGE_AXIS,
 
             "tier": tier,
-            "tier_choices": list(
-                TIER_TITLES.items()
-            ),
+            "tier_choices": list(TIER_TITLES.items()),
 
             "q": q,
             "country": country,
             "role": role,
             "sort": sort,
-            "inactive": inactive,
+            "active_only": active_only,
 
             "countries": countries,
             "roles": Player.role.field.choices,
